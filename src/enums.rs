@@ -6,21 +6,17 @@
 // at your option. Please see the LICENSE file
 // attached to this source distribution for details.
 
-/*!
-Module with some (sparse) enums
+#![allow(clippy::mistyped_literal_suffixes)]
 
-In muliple places, the spec provides lists of IDs, saying
-that the list is non exhaustive.
-*/
-
-/// Module containing the different specified chunk types
+/// Module containing constants for the chunk types defined by the spec.
 ///
-/// Beware, the spec explicitly says that its list is non exhaustive.
+/// Note that the list in the spec is explicitly non-exhaustive.
 mod chunk_types {
-    // The order is not random, its how it appears in the spec, bear this in mind.
-    // The spec says that this list is not exhaustive, so we can't use an enum here.
-    // Especially, users may add their own custom chunk types provided those are
-    // outside of the reserved space of identifiers.
+    // The order here is the order they appear in the spec.
+    // The spec is non-exhaustive, so we have both the constants and the enum.
+    //
+    // Applications are also allowed to define their own custom chunk types
+    // if they are outside the space of reserved identifiers.
 
     pub const AUDIO_DESCRIPTION: u32 = 0x64_65_73_63; // "desc"
     pub const AUDIO_DATA: u32 = 0x64_61_74_61; // "data"
@@ -35,21 +31,18 @@ mod chunk_types {
     pub const OVERVIEW: u32 = 0x6f_76_76_77; // "ovvw"
     pub const PEAK: u32 = 0x70_65_61_6b; // "peak"
     pub const EDIT_COMMENTS: u32 = 0x65_64_63_74; // "edct"
-    pub const INFO: u32 = 0x69_6e_66_6f; // "info"
+    pub const INFORMATION: u32 = 0x69_6e_66_6f; // "info"
     pub const UNIQUE_MATERIAL_IDENTIFIER: u32 = 0x75_6d_69_64; // "umid"
     pub const USER_DEFINED: u32 = 0x75_75_69_64; // "uuid"
     pub const FREE: u32 = 0x66_72_65_65; // "free"
 }
 
-/// Possible chunk types defined by the spec
+/// Chunk types defined by the spec.
 ///
-/// The chunks in a CAF file after the CAF File Header form the
-/// uppermost layer of granularity.
-///
-/// The spec explicitly says that the list is not exhaustive
-/// and that users may add their own unofficial chunk types
-/// from outside of the reserved range of chunks.
-/// Those chunk types are represented by the `Other` variant.
+/// The list of chunk types in the spec is explicitly non-exhaustive,
+/// and applications are allowed to define their own chunk types
+/// outside the space of reserved identifiers.
+/// Those chunk types are represented by the [`Other`](ChunkType::Other) variant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ChunkType {
     /// mChunkType for the "Audio Description" chunk
@@ -79,18 +72,14 @@ pub enum ChunkType {
     /// mChunkType for the "Edit Comments" chunk
     EditComments,
     /// mChunkType for the "Information" chunk
-    Info,
+    Information,
     /// mChunkType for the "Unique Material Identifier" chunk
     UniqueMaterialIdentifier,
     /// mChunkType for the "User-Defined" chunk
     UserDefined,
     /// mChunkType for the "Free" chunk
     Free,
-    /// Variant for all chunks that were not mentioned in this list.
-    ///
-    /// This includes both chunk types from the range of reserved
-    /// chunk types that weren't mentioned, and those from outside
-    /// the range of reserved ones.
+    /// Variant for all other chunk types.
     Other(u32),
 }
 
@@ -112,7 +101,7 @@ impl From<u32> for ChunkType {
             OVERVIEW => Overview,
             PEAK => Peak,
             EDIT_COMMENTS => EditComments,
-            INFO => Info,
+            INFORMATION => Information,
             UNIQUE_MATERIAL_IDENTIFIER => UniqueMaterialIdentifier,
             USER_DEFINED => UserDefined,
             FREE => Free,
@@ -121,12 +110,12 @@ impl From<u32> for ChunkType {
     }
 }
 
-/// Module containing the different specified chunk types
+/// Module containing constants for Audio Description chunk format IDs defined by the spec.
 ///
-/// Beware, the spec explicitly says that its list is non exhaustive.
+/// Note that the list in the spec is explicitly non-exhaustive.
 mod format_types {
-    // The order is not random, its how it appears in the spec, bear this in mind.
-    // The spec says that this list is not exhaustive, so we can't use an enum here.
+    // The order here is the order they appear in the spec.
+    // The spec is non-exhaustive, so we have both the constants and the enum.
 
     pub const LINEAR_PCM: u32 = 0x6c_70_63_6d; // "lpcm"
     pub const APPLE_IMA4: u32 = 0x69_6d_61_34; // "ima4"
@@ -141,13 +130,12 @@ mod format_types {
     pub const AAPL_LOSSLESS: u32 = 0x61_6c_61_63; // "alac"
 }
 
-/// Payload format types defined by the spec
+/// Code indicating what kind of data is in a CAF stream.
 ///
-/// Enum for all the possible `mFormatID` field contents
-/// defined by the spec.
-///
-/// The spec explicitly says that the list is not exhaustive.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// This enum lists `mFormatID` values defined by the spec.
+/// The list of values in the spec is explicitly non-exhaustive.
+/// Other values are represented by the [`Other`](FormatType::Other) variant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FormatType {
     /// mFormatID for Linear PCM
     LinearPcm,
@@ -171,7 +159,7 @@ pub enum FormatType {
     MpegLayer3,
     /// mFormatID for Apple Lossless
     AppleLossless,
-    /// Variant for all formats that were not mentioned in this list.
+    /// Variant for all other values.
     Other(u32),
 }
 
