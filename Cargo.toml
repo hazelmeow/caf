@@ -3,9 +3,9 @@ name = "caf"
 edition = "2021"
 version = "0.2.0"
 authors = ["est31 <MTest31@outlook.com>"]
-description = "Pure rust Core Audio Format container decoder"
+description = "Core Audio Format container decoder and encoder written in pure Rust"
 license = "MIT/Apache-2.0"
-keywords = ["coreaudio", "apple"]
+keywords = ["caf", "decoder", "encoder", "coreaudio"]
 repository = "https://github.com/RustAudio/caf"
 readme = "README.md"
 
