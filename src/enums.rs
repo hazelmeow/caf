@@ -37,7 +37,7 @@ mod chunk_types {
     pub const FREE: u32 = 0x66_72_65_65; // "free"
 }
 
-/// Chunk types defined by the spec.
+/// `ChunkType` enumerates standard chunk types.
 ///
 /// The list of chunk types in the spec is explicitly non-exhaustive,
 /// and applications are allowed to define their own chunk types
@@ -81,6 +81,34 @@ pub enum ChunkType {
     Free,
     /// Variant for all other chunk types.
     Other(u32),
+}
+
+impl ChunkType {
+    /// Returns the u32 representation of this [`ChunkType`].
+    pub fn as_u32(&self) -> u32 {
+        use self::chunk_types::*;
+        use self::ChunkType::*;
+        match self {
+            AudioDescription => AUDIO_DESCRIPTION,
+            AudioData => AUDIO_DATA,
+            PacketTable => PACKET_TABLE,
+            ChannelLayout => CHANNEL_LAYOUT,
+            MagicCookie => MAGIC_COOKIE,
+            Strings => STRINGS,
+            Marker => MARKER,
+            Region => REGION,
+            Instrument => INSTRUMENT,
+            Midi => MIDI,
+            Overview => OVERVIEW,
+            Peak => PEAK,
+            EditComments => EDIT_COMMENTS,
+            Information => INFORMATION,
+            UniqueMaterialIdentifier => UNIQUE_MATERIAL_IDENTIFIER,
+            UserDefined => USER_DEFINED,
+            Free => FREE,
+            Other(v) => *v,
+        }
+    }
 }
 
 impl From<u32> for ChunkType {
@@ -130,7 +158,7 @@ mod format_types {
     pub const AAPL_LOSSLESS: u32 = 0x61_6c_61_63; // "alac"
 }
 
-/// Code indicating what kind of data is in a CAF stream.
+/// `FormatType` enumerates standard format ID values.
 ///
 /// This enum lists `mFormatID` values defined by the spec.
 /// The list of values in the spec is explicitly non-exhaustive.
@@ -161,6 +189,28 @@ pub enum FormatType {
     AppleLossless,
     /// Variant for all other values.
     Other(u32),
+}
+
+impl FormatType {
+    /// Returns the u32 representation of this [`FormatType`].
+    pub fn as_u32(&self) -> u32 {
+        use self::format_types::*;
+        use self::FormatType::*;
+        match self {
+            LinearPcm => LINEAR_PCM,
+            AppleIma4 => APPLE_IMA4,
+            Mpeg4Aac => MPEG4_AAC,
+            Mace3 => MACE3,
+            Mace6 => MACE6,
+            Ulaw => U_LAW,
+            Alaw => A_LAW,
+            MpegLayer1 => MPEG_LAYER_1,
+            MpegLayer2 => MPEG_LAYER_2,
+            MpegLayer3 => MPEG_LAYER_3,
+            AppleLossless => AAPL_LOSSLESS,
+            Other(v) => *v,
+        }
+    }
 }
 
 impl From<u32> for FormatType {

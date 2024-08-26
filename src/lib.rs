@@ -18,3 +18,8 @@ pub use enums::{ChunkType, FormatType};
 
 pub mod chunks;
 pub mod reading;
+pub mod writing;
+
+/// The CAF file header
+pub(crate) const CAF_HEADER_MAGIC: [u8; 8] = [0x63, 0x61, 0x66, 0x66, 0x00, 0x01, 0x00, 0x00];
+pub(crate) const CAF_HEADER_MAGIC_LEN: u64 = 8;

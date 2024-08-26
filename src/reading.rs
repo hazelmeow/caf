@@ -1,11 +1,12 @@
 use crate::chunks::{AudioData, AudioDescription, Chunk, ChunkHeader, PacketTable};
-use crate::ChunkType;
+use crate::{ChunkType, CAF_HEADER_MAGIC, CAF_HEADER_MAGIC_LEN};
 use std::borrow::Cow;
 use std::error::Error;
 use std::fmt::Display;
 use std::io::{Error as IoError, Read, Seek, SeekFrom, Take};
 use std::string::FromUtf8Error;
 
+/// An error related to reading.
 #[derive(Debug)]
 pub enum CafReadError {
     /// Wrapped I/O error.
@@ -67,7 +68,7 @@ impl From<FromUtf8Error> for CafReadError {
     }
 }
 
-macro_rules! invalid_data {
+macro_rules! read_invalid {
     ($text:expr) => {
         CafReadError::InvalidData(std::borrow::Cow::Borrowed(concat!("Invalid data: ", $text)))
     };
@@ -75,16 +76,12 @@ macro_rules! invalid_data {
 
 macro_rules! invalid_chunk_size {
     ($chunk:expr) => {
-        invalid_data!(concat!("invalid chunk size for ", $chunk, " chunk"))
+        read_invalid!(concat!("invalid chunk size for ", $chunk, " chunk"))
     };
 }
 
 pub(crate) use invalid_chunk_size;
-pub(crate) use invalid_data;
-
-/// The CAF file header
-const CAF_HEADER_MAGIC: [u8; 8] = [0x63, 0x61, 0x66, 0x66, 0x00, 0x01, 0x00, 0x00];
-const CAF_HEADER_MAGIC_LEN: u64 = 8;
+pub(crate) use read_invalid;
 
 /// Reader for chunks from a CAF stream.
 pub struct ChunkReader<T: Read> {
@@ -236,7 +233,9 @@ impl<T: Read + Seek> ChunkReader<T> {
     }
 }
 
-/// Reader for packets from a CAF stream.
+// TODO: return the frames per packet somehow for variable frames per packet formats like vorbis
+
+/// High-level utility for reading packets from a CAF stream.
 ///
 /// The underlying reader must implement both [`Read`] and [`Seek`].
 /// Since the Audio Data chunk may appear before the end of the file,
@@ -280,9 +279,9 @@ impl<T: Read + Seek> PacketReader<T> {
         // Read Audio Description chunk (required to be first)
         let first_chunk_header = ch_rdr
             .read_chunk_header()?
-            .ok_or_else(|| invalid_data!("stream contains no chunks"))?;
+            .ok_or_else(|| read_invalid!("stream contains no chunks"))?;
         if first_chunk_header.chunk_type != ChunkType::AudioDescription {
-            return Err(invalid_data!(
+            return Err(read_invalid!(
                 "stream doesn't start with an Audio Description chunk"
             ));
         }
@@ -313,7 +312,7 @@ impl<T: Read + Seek> PacketReader<T> {
             audio_description.bytes_per_packet == 0 || audio_description.frames_per_packet == 0;
 
         if packet_table_required && packet_table.is_none() {
-            return Err(invalid_data!("packet table is required but was not found"));
+            return Err(read_invalid!("packet table is required but was not found"));
         }
 
         // Seek back to the start and skip the CAF header
@@ -336,7 +335,7 @@ impl<T: Read + Seek> PacketReader<T> {
         }
 
         let Some(audio_data) = audio_data else {
-            return Err(invalid_data!("audio data chunk was not found"));
+            return Err(read_invalid!("audio data chunk was not found"));
         };
 
         // The inner reader should now be at the start of the audio data.
@@ -533,7 +532,7 @@ impl<T: Read + Seek> PacketReader<T> {
             let packet_table = self
                 .packet_table
                 .as_ref()
-                .ok_or(invalid_data!("should have packet table"))?;
+                .ok_or(read_invalid!("should have packet table"))?;
 
             // sum packet lengths between current and target indices
             for i in min_index..max_index {
