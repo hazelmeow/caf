@@ -66,10 +66,7 @@ fn read_audio_description_chunk() {
     let rdr = Cursor::new(OPUS_FILE);
     let mut ch_rdr = ChunkReader::new(rdr).expect("should construct");
 
-    let chunk = ch_rdr
-        .read_chunk()
-        .expect("should succeed")
-        .expect("should be present");
+    let chunk = ch_rdr.read_chunk().unwrap().expect("should be present");
 
     assert_eq!(chunk.chunk_type(), ChunkType::AudioDescription);
 
@@ -92,7 +89,7 @@ fn read_all_chunks() {
     let mut ch_rdr = ChunkReader::new(rdr).expect("should construct");
 
     let mut chunk_types = Vec::new();
-    while let Some(chunk) = ch_rdr.read_chunk().expect("should succeed") {
+    while let Some(chunk) = ch_rdr.read_chunk().unwrap() {
         chunk_types.push(chunk.chunk_type());
     }
 
@@ -116,11 +113,11 @@ fn read_chunk_raw() {
     // read header
     let header = ch_rdr
         .read_chunk_header()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
 
     // read raw
-    let body = ch_rdr.read_chunk_raw(&header).expect("should succeed");
+    let body = ch_rdr.read_chunk_raw(&header).unwrap();
     assert_eq!(
         body,
         vec![
@@ -131,10 +128,7 @@ fn read_chunk_raw() {
     );
 
     // next chunk should read correctly
-    ch_rdr
-        .read_chunk()
-        .expect("should succeed")
-        .expect("should be present");
+    ch_rdr.read_chunk().unwrap().expect("should be present");
 }
 
 #[test]
@@ -143,26 +137,18 @@ fn seek_to_next_chunk() {
     let mut ch_rdr = ChunkReader::new(rdr).expect("should construct");
 
     // 1st chunk
-    let c1 = ch_rdr
-        .read_chunk()
-        .expect("should succeed")
-        .expect("should be present");
+    let c1 = ch_rdr.read_chunk().unwrap().expect("should be present");
     assert_eq!(c1.chunk_type(), ChunkType::AudioDescription);
 
     // skip 2nd chunk
     let c2_header = ch_rdr
         .read_chunk_header()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
-    ch_rdr
-        .seek_to_next_chunk(&c2_header)
-        .expect("should succeed");
+    ch_rdr.seek_to_next_chunk(&c2_header).unwrap();
 
     // 3rd chunk
-    let c3 = ch_rdr
-        .read_chunk()
-        .expect("should succeed")
-        .expect("should be present");
+    let c3 = ch_rdr.read_chunk().unwrap().expect("should be present");
     assert_eq!(c3.chunk_type(), ChunkType::Information);
 }
 
@@ -173,16 +159,15 @@ fn read_audio_data() {
 
     // loop until we reach the audio data chunk, read it, and keep the stream positioned at the start of the audio data
     let mut audio_data = None;
-    while let Some(header) = ch_rdr.read_chunk_header().expect("should succeed") {
+    while let Some(header) = ch_rdr.read_chunk_header().unwrap() {
         if header.chunk_type == ChunkType::AudioData {
             // read until data starts
-            let chunk = AudioData::read_until_data(ch_rdr.get_mut(), header.chunk_size)
-                .expect("should succeed");
+            let chunk = AudioData::read_until_data(ch_rdr.get_mut(), header.chunk_size).unwrap();
             audio_data = Some(chunk);
             break;
         } else {
             // skip chunk data
-            ch_rdr.seek_to_next_chunk(&header).expect("should succeed");
+            ch_rdr.seek_to_next_chunk(&header).unwrap();
         }
     }
 
@@ -192,7 +177,7 @@ fn read_audio_data() {
     // read some audio data
     let mut inner_rdr = ch_rdr.into_inner();
     let mut buf = vec![0; 32];
-    inner_rdr.read_exact(&mut buf).expect("should succeed");
+    inner_rdr.read_exact(&mut buf).unwrap();
 
     assert_eq!(
         buf,
@@ -214,7 +199,7 @@ fn not_caf() {
 #[test]
 fn read_packets() {
     let rdr = Cursor::new(OPUS_FILE);
-    let mut packet_rdr = PacketReader::new(rdr, &[]).expect("should succeed");
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
 
     // opus
     assert!(packet_rdr.has_variable_packet_bytes());
@@ -227,7 +212,7 @@ fn read_packets() {
     // read first packet
     let packet = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet, vec![0xFC, 0xFF, 0xFE]);
 
@@ -238,7 +223,7 @@ fn read_packets() {
     // read second packet
     let packet = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet, vec![0xFC, 0xFF, 0xFE]);
 
@@ -264,7 +249,7 @@ fn read_packets() {
     for expected in packets {
         let packet = packet_rdr
             .read_packet()
-            .expect("should succeed")
+            .unwrap()
             .expect("should be present");
         assert_eq!(packet, expected);
     }
@@ -273,75 +258,95 @@ fn read_packets() {
 #[test]
 fn read_all_packets_opus() {
     let rdr = Cursor::new(OPUS_FILE);
-    let mut packet_rdr = PacketReader::new(rdr, &[]).expect("should succeed");
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
 
     // should read all
     for _ in 0..251 {
         assert!(packet_rdr.next_packet_size().is_some());
         packet_rdr
             .read_packet()
-            .expect("should succeed")
+            .unwrap()
             .expect("should be present");
     }
 
     // should be done and return Ok(None)
     assert!(packet_rdr.next_packet_size().is_none());
-    assert!(packet_rdr.read_packet().expect("should succeed").is_none());
+    assert!(packet_rdr.read_packet().unwrap().is_none());
 }
 
 #[test]
 fn read_all_packets_pcm() {
     let rdr = Cursor::new(PCM_FILE);
-    let mut packet_rdr = PacketReader::new(rdr, &[]).expect("should succeed");
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
 
     // should read all
     for _ in 0..240000 {
         assert!(packet_rdr.next_packet_size().is_some());
         packet_rdr
             .read_packet()
-            .expect("should succeed")
+            .unwrap()
             .expect("should be present");
     }
 
     // should be done and return Ok(None)
     // since pcm is CBR, next_packet_size will always return Some so we can't use it to check for EOF
-    assert!(packet_rdr.read_packet().expect("should succeed").is_none());
+    assert!(packet_rdr.read_packet().unwrap().is_none());
 }
 
 #[test]
 fn read_all_packets_alac() {
     let rdr = Cursor::new(ALAC_FILE);
-    let mut packet_rdr = PacketReader::new(rdr, &[]).expect("should succeed");
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
 
     // should read all
     for _ in 0..59 {
         assert!(packet_rdr.next_packet_size().is_some());
         packet_rdr
             .read_packet()
-            .expect("should succeed")
+            .unwrap()
             .expect("should be present");
     }
 
     // should be done and return Ok(None)
     assert!(packet_rdr.next_packet_size().is_none());
-    assert!(packet_rdr.read_packet().expect("should succeed").is_none());
+    assert!(packet_rdr.read_packet().unwrap().is_none());
 }
 
 #[test]
-fn seek_forward_to_packet_opus() {
+fn seek_to_packet_noop() {
     let rdr = Cursor::new(OPUS_FILE);
-    let mut packet_rdr = PacketReader::new(rdr, &[]).expect("should succeed");
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
 
     // read some packets
     for _ in 0..5 {
         packet_rdr
             .read_packet()
-            .expect("should succeed")
+            .unwrap()
+            .expect("should be present");
+    }
+
+    // seek to packet 5 (current packet index)
+    packet_rdr.seek_to_packet(5).unwrap();
+
+    // check index
+    assert_eq!(packet_rdr.next_packet_idx(), 5);
+}
+
+#[test]
+fn seek_forward_to_packet_opus() {
+    let rdr = Cursor::new(OPUS_FILE);
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
+
+    // read some packets
+    for _ in 0..5 {
+        packet_rdr
+            .read_packet()
+            .unwrap()
             .expect("should be present");
     }
 
     // seek to packet 16
-    packet_rdr.seek_to_packet(16).expect("should succeed");
+    packet_rdr.seek_to_packet(16).unwrap();
 
     // check index
     assert_eq!(packet_rdr.next_packet_idx(), 16);
@@ -349,12 +354,12 @@ fn seek_forward_to_packet_opus() {
     // read packets 16 and 17
     let packet_16 = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet_16, OPUS_PACKET_16);
     let packet_17 = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet_17, OPUS_PACKET_17);
 }
@@ -362,18 +367,18 @@ fn seek_forward_to_packet_opus() {
 #[test]
 fn seek_forward_to_packet_pcm() {
     let rdr = Cursor::new(PCM_FILE);
-    let mut packet_rdr = PacketReader::new(rdr, &[]).expect("should succeed");
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
 
     // read some packets
     for _ in 0..10000 {
         packet_rdr
             .read_packet()
-            .expect("should succeed")
+            .unwrap()
             .expect("should be present");
     }
 
     // seek to packet 32768
-    packet_rdr.seek_to_packet(32768).expect("should succeed");
+    packet_rdr.seek_to_packet(32768).unwrap();
 
     // check index
     assert_eq!(packet_rdr.next_packet_idx(), 32768);
@@ -381,12 +386,12 @@ fn seek_forward_to_packet_pcm() {
     // read packets 32768 and 32769
     let packet_32768 = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet_32768, PCM_PACKET_32768);
     let packet_32769 = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet_32769, PCM_PACKET_32769);
 }
@@ -394,18 +399,18 @@ fn seek_forward_to_packet_pcm() {
 #[test]
 fn seek_backward_to_packet_opus() {
     let rdr = Cursor::new(OPUS_FILE);
-    let mut packet_rdr = PacketReader::new(rdr, &[]).expect("should succeed");
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
 
     // read many packets
     for _ in 0..50 {
         packet_rdr
             .read_packet()
-            .expect("should succeed")
+            .unwrap()
             .expect("should be present");
     }
 
     // seek to packet 16
-    packet_rdr.seek_to_packet(16).expect("should succeed");
+    packet_rdr.seek_to_packet(16).unwrap();
 
     // check index
     assert_eq!(packet_rdr.next_packet_idx(), 16);
@@ -413,12 +418,12 @@ fn seek_backward_to_packet_opus() {
     // read packets 16 and 17
     let packet_16 = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet_16, OPUS_PACKET_16);
     let packet_17 = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet_17, OPUS_PACKET_17);
 }
@@ -426,18 +431,18 @@ fn seek_backward_to_packet_opus() {
 #[test]
 fn seek_backward_to_packet_pcm() {
     let rdr = Cursor::new(PCM_FILE);
-    let mut packet_rdr = PacketReader::new(rdr, &[]).expect("should succeed");
+    let mut packet_rdr = PacketReader::new(rdr, &[]).unwrap();
 
     // read many packets
     for _ in 0..50000 {
         packet_rdr
             .read_packet()
-            .expect("should succeed")
+            .unwrap()
             .expect("should be present");
     }
 
     // seek to packet 32768
-    packet_rdr.seek_to_packet(32768).expect("should succeed");
+    packet_rdr.seek_to_packet(32768).unwrap();
 
     // check index
     assert_eq!(packet_rdr.next_packet_idx(), 32768);
@@ -445,12 +450,12 @@ fn seek_backward_to_packet_pcm() {
     // read packets 32768 and 32769
     let packet_32768 = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet_32768, PCM_PACKET_32768);
     let packet_32769 = packet_rdr
         .read_packet()
-        .expect("should succeed")
+        .unwrap()
         .expect("should be present");
     assert_eq!(packet_32769, PCM_PACKET_32769);
 }
@@ -460,7 +465,7 @@ fn read_alac_magic_cookie() {
     let rdr = Cursor::new(ALAC_FILE);
 
     // request Magic Cookie chunks
-    let packet_rdr = PacketReader::new(rdr, &[ChunkType::MagicCookie]).expect("should succeed");
+    let packet_rdr = PacketReader::new(rdr, &[ChunkType::MagicCookie]).unwrap();
 
     assert_eq!(packet_rdr.extra_chunks.len(), 1);
     assert_eq!(
@@ -471,26 +476,29 @@ fn read_alac_magic_cookie() {
     let Chunk::MagicCookie(magic_cookie) = &packet_rdr.extra_chunks[0] else {
         unreachable!()
     };
-    assert_eq!(magic_cookie, ALAC_MAGIC_COOKIE);
+    assert_eq!(magic_cookie.0, ALAC_MAGIC_COOKIE);
 }
 
 #[test]
 fn get_num_packets() {
     let packet_rdr_opus = {
         let rdr = Cursor::new(OPUS_FILE);
-        PacketReader::new(rdr, &[]).expect("should succeed")
+        PacketReader::new(rdr, &[]).unwrap()
     };
     assert_eq!(packet_rdr_opus.num_packets(), Some(251));
 
     let packet_rdr_pcm = {
         let rdr = Cursor::new(PCM_FILE);
-        PacketReader::new(rdr, &[]).expect("should succeed")
+        PacketReader::new(rdr, &[]).unwrap()
     };
     assert_eq!(packet_rdr_pcm.num_packets(), Some(240000));
 
     let packet_rdr_alac = {
         let rdr = Cursor::new(ALAC_FILE);
-        PacketReader::new(rdr, &[]).expect("should succeed")
+        PacketReader::new(rdr, &[]).unwrap()
     };
     assert_eq!(packet_rdr_alac.num_packets(), Some(59));
 }
+
+// TODO: test with audio data size -1
+// TODO: test with variable frames per packet
